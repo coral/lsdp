@@ -2,6 +2,12 @@
 name = "lsdp"
 version = "0.1.0"
 edition = "2021"
+license_file = "LICENSE.txt"
+keywords = ["lenbrook", "discovery", "protocol"]
+categories = ["parser"]
+description = "Lenbrook Service Discovery Protocol in Rust"
+repository = "https://github.com/coral/lsdp"
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
