@@ -1,0 +1,20 @@
+[package]
+name = "lsdp"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+hex = "0.4.3"
+nom = "7.1.0"
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0.30" 
+tokio = { version = "1.16.1", features = ["macros", "rt-multi-thread", "net"], optional = true }
+
+[dev-dependencies]
+anyhow = "1.0.53"
+
+[features]
+default = ["discover"]
+discover = ["tokio"]
