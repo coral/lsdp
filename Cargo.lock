@@ -50,6 +50,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "hex",
+ "netaddr2",
  "nom",
  "serde",
  "thiserror",
@@ -90,6 +91,12 @@ checksum = "b9f1c5b025cda876f66ef43a113f91ebc9f4ccef34843000e0adf6ebbab84e21"
 dependencies = [
  "winapi",
 ]
+
+[[package]]
+name = "netaddr2"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6680d6da37e96edea724d1b065d82b516040191a38453a6a440d8000eb3b479"
 
 [[package]]
 name = "nom"

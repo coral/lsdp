@@ -43,7 +43,7 @@ impl Header {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ClassID {
     Player = 0x0001,
     Server = 0x0002,
@@ -93,10 +93,14 @@ impl Into<u16> for ClassID {
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct QueryMessage {
-    pub classes: Vec<ClassID>,
+    classes: Vec<ClassID>,
 }
 
 impl QueryMessage {
+    pub fn new(classes: Vec<ClassID>) -> QueryMessage {
+        QueryMessage { classes }
+    }
+
     pub fn decode(input: &[u8]) -> IResult<&[u8], QueryMessage> {
         let (remain, num) = be_u8(input)?;
         let (remain, classes) = count(ClassID::decode, num.into())(remain)?;
@@ -114,7 +118,7 @@ impl QueryMessage {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct AnnounceRecord<'a> {
     pub cid: ClassID,
@@ -151,7 +155,7 @@ impl<'a> AnnounceRecord<'a> {
         r
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct AnnounceMessage<'a> {
     pub node_id: &'a [u8],
