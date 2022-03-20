@@ -10,7 +10,7 @@ use std::convert::TryInto;
 use std::net::IpAddr;
 use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct Header {
     pub length: u8,
@@ -90,7 +90,7 @@ impl Into<u16> for ClassID {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct QueryMessage {
     classes: Vec<ClassID>,
@@ -120,12 +120,12 @@ impl QueryMessage {
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub struct AnnounceRecord<'a> {
+pub struct AnnounceRecord {
     pub cid: ClassID,
-    pub data: HashMap<&'a str, &'a str>,
+    pub data: HashMap<String, String>,
 }
 
-impl<'a> AnnounceRecord<'a> {
+impl AnnounceRecord {
     pub fn decode(input: &[u8]) -> IResult<&[u8], AnnounceRecord> {
         let (remain, cid) = ClassID::decode(input)?;
         let (remain, num) = be_u8(remain)?;
@@ -135,7 +135,7 @@ impl<'a> AnnounceRecord<'a> {
         let mut m = remain;
         for _ in 0..num {
             let (remain, (key, value)) = tuple((parse_str, parse_str))(m)?;
-            anrec.insert(key, value);
+            anrec.insert(key.to_string(), value.to_string());
             m = remain;
         }
 
@@ -157,10 +157,10 @@ impl<'a> AnnounceRecord<'a> {
 }
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub struct AnnounceMessage<'a> {
-    pub node_id: &'a [u8],
+pub struct AnnounceMessage {
+    pub node_id: Vec<u8>,
     pub addr: std::net::IpAddr,
-    pub records: Vec<AnnounceRecord<'a>>,
+    pub records: Vec<AnnounceRecord>,
 }
 
 fn parse_str(input: &[u8]) -> IResult<&[u8], &str> {
@@ -199,7 +199,7 @@ pub enum IpParseError {
     IpConversionError(#[from] std::array::TryFromSliceError),
 }
 
-impl<'a> AnnounceMessage<'a> {
+impl AnnounceMessage {
     pub fn decode(input: &[u8]) -> IResult<&[u8], AnnounceMessage> {
         //Get NodeID
         let (remain, nodeid) = take_field(input)?;
@@ -216,7 +216,7 @@ impl<'a> AnnounceMessage<'a> {
         Ok((
             remain,
             AnnounceMessage {
-                node_id: nodeid,
+                node_id: nodeid.to_vec(),
                 addr: address,
                 records: ar,
             },
@@ -243,34 +243,40 @@ impl<'a> AnnounceMessage<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub struct DeleteMessage<'a> {
-    pub node_id: &'a [u8],
+pub struct DeleteMessage {
+    pub node_id: Vec<u8>,
     pub classes: Vec<ClassID>,
 }
 
-impl<'a> DeleteMessage<'a> {
+impl DeleteMessage {
     pub fn decode(input: &[u8]) -> IResult<&[u8], DeleteMessage> {
         let (remain, node_id) = take_field(input)?;
 
         let (remain, num) = be_u8(remain)?;
         let (remain, classes) = count(ClassID::decode, num.into())(remain)?;
 
-        Ok((remain, DeleteMessage { node_id, classes }))
+        Ok((
+            remain,
+            DeleteMessage {
+                node_id: node_id.to_vec(),
+                classes,
+            },
+        ))
     }
 }
 
-#[derive(Debug)]
-pub enum MessageType<'a> {
-    Announce(AnnounceMessage<'a>),
-    Delete(DeleteMessage<'a>),
+#[derive(Debug, Clone)]
+pub enum MessageType {
+    Announce(AnnounceMessage),
+    Delete(DeleteMessage),
     BroadcastQuery(QueryMessage),
     UnicastQuery(QueryMessage),
     Unimplemented,
 }
 
-impl<'a> MessageType<'a> {
+impl MessageType {
     pub fn decode(input: &[u8]) -> IResult<&[u8], MessageType> {
         let (i, (_, f)) = tuple((be_u8, be_u8))(input)?;
         let r = match f {
@@ -310,14 +316,14 @@ impl<'a> MessageType<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub struct Packet<'a> {
+pub struct Packet {
     header: Header,
-    pub message: MessageType<'a>,
+    pub message: MessageType,
 }
 
-impl<'a> Packet<'a> {
+impl Packet {
     pub fn decode(input: &[u8]) -> Result<Packet, nom::Err<nom::error::Error<&[u8]>>> {
         let (remain, header) = Header::header(input)?;
         let (_, message) = MessageType::decode(&remain)?;
@@ -401,7 +407,6 @@ fn decode_encode_complex() {
     let b = p.bytes();
 
     let p2 = Packet::decode(&b).unwrap();
-    dbg!(&p2);
 
     match p2.message {
         MessageType::Announce(v) => {
