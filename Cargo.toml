@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 license = "WTFPL"
 keywords = ["lenbrook", "discovery", "protocol"]
-categories = ["parser"]
+categories = ["parsing"]
 description = "Lenbrook Service Discovery Protocol in Rust"
 repository = "https://github.com/coral/lsdp"
 
