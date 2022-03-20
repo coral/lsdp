@@ -6,7 +6,7 @@ use std::sync::Arc;
 use thiserror::Error;
 use tokio::net::UdpSocket;
 use tokio::sync::Mutex;
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::{broadcast, mpsc, oneshot};
 
 use crate::protocol::{AnnounceMessage, MessageType, QueryMessage};
 use crate::Packet;
@@ -30,6 +30,9 @@ pub struct Discover {
     query_channel: mpsc::Sender<QueryMessage>,
     index: Arc<Mutex<HashMap<Vec<u8>, AnnounceMessage>>>,
     updates: broadcast::Sender<Packet>,
+
+    cancel_process: mpsc::Sender<()>,
+    cancel_index: mpsc::Sender<()>,
 }
 
 impl Discover {
@@ -43,13 +46,18 @@ impl Discover {
 
         let (discovered, _) = broadcast::channel(100);
 
-        tokio::spawn(Discover::index(discovered.subscribe(), index.clone()));
-        tokio::spawn(Discover::process(socket, rx, discovered.clone()));
+        let (ctx, crx) = mpsc::channel(1);
+        let (itx, irx) = mpsc::channel(1);
+
+        tokio::spawn(Discover::index(discovered.subscribe(), index.clone(), irx));
+        tokio::spawn(Discover::process(socket, rx, discovered.clone(), crx));
 
         Ok(Discover {
             query_channel: qtx,
             index,
             updates: discovered,
+            cancel_process: ctx,
+            cancel_index: itx,
         })
     }
 
@@ -71,13 +79,22 @@ impl Discover {
     async fn index(
         mut ch: broadcast::Receiver<Packet>,
         d: Arc<Mutex<HashMap<Vec<u8>, AnnounceMessage>>>,
+        mut cancel: mpsc::Receiver<()>,
     ) -> Result<(), DiscoverError> {
         loop {
-            match ch.recv().await?.message {
-                MessageType::Announce(v) => {
-                    d.lock().await.insert(v.node_id.clone(), v);
+            tokio::select! {
+                p = ch.recv() => {
+                    match p?.message {
+                        MessageType::Announce(v) => {
+                            d.lock().await.insert(v.node_id.clone(), v);
+                        }
+                        _ => {}
+                    }
                 }
-                _ => {}
+
+                _ =  cancel.recv() => {
+                    return Ok(())
+                }
             }
         }
     }
@@ -86,6 +103,7 @@ impl Discover {
         socket: UdpSocket,
         mut query: mpsc::Receiver<QueryMessage>,
         discovered: broadcast::Sender<Packet>,
+        mut cancel: mpsc::Receiver<()>,
     ) -> Result<(), DiscoverError> {
         let mut buf = [0; 1024];
         loop {
@@ -103,6 +121,10 @@ impl Discover {
                         },
                         None => {}
                     }
+                }
+
+                _ =  cancel.recv() => {
+                    return Ok(())
                 }
             }
         }
@@ -135,6 +157,13 @@ impl Discover {
             }
             Err(e) => Err(DiscoverError::InterfaceError(e)),
         }
+    }
+}
+
+impl Drop for Discover {
+    fn drop(&mut self) {
+        let _ = self.cancel_process.try_send(());
+        let _ = self.cancel_index.try_send(());
     }
 }
 

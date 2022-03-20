@@ -1,3 +1,4 @@
+#[cfg(feature = "discover")]
 pub mod net;
 mod protocol;
 
