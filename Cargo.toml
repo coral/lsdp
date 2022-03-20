@@ -2,7 +2,7 @@
 name = "lsdp"
 version = "0.1.0"
 edition = "2021"
-license_file = "LICENSE.txt"
+license = "WTFPL"
 keywords = ["lenbrook", "discovery", "protocol"]
 categories = ["parser"]
 description = "Lenbrook Service Discovery Protocol in Rust"
