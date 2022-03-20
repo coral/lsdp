@@ -61,7 +61,7 @@ impl ClassID {
 
     pub fn bytes(self) -> [u8; 2] {
         let v: u16 = self.into();
-        v.to_ne_bytes()
+        v.to_be_bytes()
     }
 }
 
@@ -370,7 +370,7 @@ fn announce() {
 }
 
 #[test]
-fn decode_encode() {
+fn decode_encode_query() {
     let decoded_string = hex::decode("064c53445001055101ffff").unwrap();
 
     let p = Packet::decode(&decoded_string).unwrap();
@@ -397,6 +397,7 @@ fn decode_encode_complex() {
     let b = p.bytes();
 
     let p2 = Packet::decode(&b).unwrap();
+    dbg!(&p2);
 
     match p2.message {
         MessageType::Announce(v) => {
