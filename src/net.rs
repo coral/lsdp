@@ -6,7 +6,7 @@ use std::sync::Arc;
 use thiserror::Error;
 use tokio::net::UdpSocket;
 use tokio::sync::Mutex;
-use tokio::sync::{broadcast, mpsc, oneshot};
+use tokio::sync::{broadcast, mpsc};
 
 use crate::protocol::{AnnounceMessage, MessageType, QueryMessage};
 use crate::Packet;
