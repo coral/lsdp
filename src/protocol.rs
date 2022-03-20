@@ -141,21 +141,17 @@ pub enum IpParseError {
 
 impl<'a> AnnounceMessage<'a> {
     pub fn decode(input: &[u8]) -> IResult<&[u8], AnnounceMessage> {
+        //Get NodeID
         let (remain, nodeid) = AnnounceMessage::take_field(input)?;
 
+        //Get IP
         let (remain, address) = parse_ip(remain)?;
 
+        //See how many records to read
         let (remain, num) = be_u8(remain)?;
 
-        // let mut ar = Vec::new();
-        // let mut m = remain;
-
+        //Read
         let (remain, ar) = count(AnnounceRecord::decode, num.into())(remain)?;
-        // for _ in 0..num {
-        //     let (remain, r) = AnnounceRecord::decode(&m)?;
-        //     ar.push(r);
-        //     m = remain;
-        // }
 
         Ok((
             remain,
